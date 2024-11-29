@@ -14,7 +14,7 @@ This project demonstrates a **Conversational AI chatbot** built using **LangChai
 - **Streamlit Session History:** Maintains conversational context for an improved user experience.
 - **Dynamic Document Ingestion:** Supports adding documents to the knowledge base for enhanced chatbot capabilities.
 
----
+---   
 
 ## Prerequisites
 
@@ -44,12 +44,19 @@ This project demonstrates a **Conversational AI chatbot** built using **LangChai
    ```
 
 4. **Configure Environment Variables**:
-   Create a `.env` file and add the following:
+   Create a `.streamlit/` folder and then add `.secrets.toml` file so add the following:
    ```
-   AZURE_OPENAI_KEY=your_api_key
-   AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com/
-   AZURE_OPENAI_DEPLOYMENT=your_deployment_name
-   AZURE_OPENAI_VERSION=2023-05-15
+   AZURE_OPENAI_API_KEY='your_api_key'
+
+   AZURE_OPENAI_ENDPOINT='https://your-resource-name.openai.azure.com/'
+   AZURE_DEPLOYMENT_NAME='your_deployment_name'
+   AZURE_MODEL_NAME='gpt-4o-mini'
+   AZURE_API_VERSION='2024-08-01-preview'
+
+   AZURE_DEPLOYMENT_EMBEDDING_ENDPOINT='https://your-resource-name.openai.azure.com/'
+   AZURE_DEPLOYMENT_EMBEDDING_NAME='your_deployment_name'
+   AZURE_EMBEDDING_MODEL_NAME='text-embedding-ada-002'
+   AZURE_EMBEDDING_API_VERSION='2023-05-15'
    ```
 
 ---
