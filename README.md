@@ -1,20 +1,20 @@
-# Chatbot RAG com LangChain, FAISS e Azure OpenAI
+# RAG Chatbot with LangChain, FAISS and Azure OpenAI
 
-Chatbot conversacional que responde com base em documentos locais (RAG), mantendo o histórico da conversa na sessão do Streamlit.
+A conversational chatbot that answers based on local documents (RAG), keeping conversation history in the Streamlit session.
 
 ![Demo](image.png)
 
-## 🏗️ Arquitetura
+## 🏗️ Architecture
 
-### Visão geral
+### Overview
 
 ```mermaid
 flowchart LR
-    U([Usuário]) --> UI[Streamlit<br/>chat.py]
+    U([User]) --> UI[Streamlit<br/>chat.py]
     UI --> CH[ConversationalRetrievalChain]
     CH <--> MEM[ConversationBufferMemory<br/>st.session_state]
-    CH -->|top-k similaridade| VS[(FAISS<br/>em memória)]
-    CH -->|prompt + contexto + histórico| LLM[(Azure OpenAI<br/>chat)]
+    CH -->|top-k similarity| VS[(FAISS<br/>in memory)]
+    CH -->|prompt + context + history| LLM[(Azure OpenAI<br/>chat)]
     DOC[data/documents.txt] -->|chunks 500 / overlap 50| EMB[(Azure OpenAI<br/>embeddings)]
     EMB --> VS
 ```
@@ -23,51 +23,52 @@ flowchart LR
 
 ```mermaid
 sequenceDiagram
-    actor U as Usuário
+    actor U as User
     participant S as Streamlit
     participant C as Chain
     participant V as FAISS
     participant L as Azure OpenAI
-    Note over S,V: Na inicialização: carrega, divide e vetoriza documentos
-    U->>S: pergunta
+    Note over S,V: On startup: load, split and embed documents
+    U->>S: question
     S->>C: invoke(question)
-    C->>V: buscar trechos semelhantes (k=10)
-    V-->>C: contexto
-    C->>L: prompt (contexto + histórico + pergunta)
-    L-->>C: resposta
-    C-->>S: resposta + documentos de origem
-    S-->>U: exibe resposta
+    C->>V: retrieve similar chunks (k=10)
+    V-->>C: context
+    C->>L: prompt (context + history + question)
+    L-->>C: answer
+    C-->>S: answer + source documents
+    S-->>U: display answer
 ```
 
-## 🧭 Decisões de arquitetura
+## 🧭 Architecture decisions
 
-| Decisão | Motivo | Trade-off |
+| Decision | Rationale | Trade-off |
 |---|---|---|
-| **RAG** em vez de fine-tuning | Conhecimento atualizável sem retreinar e com menor custo | Qualidade depende do *chunking* e da recuperação |
-| **FAISS** em memória | Simples, sem serviço externo | Índice é recriado a cada inicialização; não escala nem persiste |
-| Chunks de 500 caracteres, overlap 50 | Bom ponto de partida para texto corrido | Precisa de ajuste conforme o tipo de documento |
-| **Azure OpenAI** | Governança, rede privada e conformidade corporativa | Exige provisionar deployments (chat e embeddings) |
-| Memória na `session_state` | Contexto por usuário sem backend | Perdida ao recarregar a sessão |
+| **RAG** instead of fine-tuning | Knowledge can be updated without retraining, at lower cost | Quality depends on chunking and retrieval |
+| In-memory **FAISS** | Simple, no external service | Index is rebuilt on every start; doesn't scale or persist |
+| 500-char chunks, 50 overlap | Good starting point for running text | Needs tuning per document type |
+| **Azure OpenAI** | Governance, private networking and enterprise compliance | Requires provisioning chat and embedding deployments |
+| Memory in `session_state` | Per-user context without a backend | Lost when the session reloads |
 
-## ⚠️ Limitações
+## ⚠️ Limitations
 
-- Apenas um arquivo de texto (`data/documents.txt`) é ingerido; não há upload dinâmico de documentos.
-- O índice FAISS não é persistido, então cada reinício gera novos embeddings (custo e tempo).
-- Não há avaliação de qualidade da recuperação nem das respostas.
-- Chaves em `.streamlit/secrets.toml`; em produção, use **Azure Key Vault** com Managed Identity.
+- Only one text file (`data/documents.txt`) is ingested; there is no dynamic document upload.
+- The FAISS index is not persisted, so each restart regenerates embeddings (cost and time).
+- No evaluation of retrieval or answer quality.
+- Keys live in `.streamlit/secrets.toml`; in production, use **Azure Key Vault** with Managed Identity.
+- The prompt and sample knowledge base are in Portuguese.
 
-## 🚀 Roadmap para produção
+## 🚀 Roadmap to production
 
-- [ ] Persistir o índice (FAISS em disco) ou migrar para **Azure AI Search**
-- [ ] Suporte a vários formatos (PDF, Markdown) e ingestão incremental
-- [ ] Busca híbrida (vetorial + palavra-chave) e *reranking*
-- [ ] Avaliação do RAG (relevância do contexto, fidelidade, correção) no CI
-- [ ] Citação das fontes na interface (os documentos de origem já são retornados)
-- [ ] Autenticação via Entra ID / Managed Identity e observabilidade (tokens, custo, latência)
+- [ ] Persist the index (FAISS on disk) or migrate to **Azure AI Search**
+- [ ] Support multiple formats (PDF, Markdown) and incremental ingestion
+- [ ] Hybrid search (vector + keyword) and reranking
+- [ ] RAG evaluation (context relevance, faithfulness, correctness) in CI
+- [ ] Show source citations in the UI (source documents are already returned)
+- [ ] Entra ID / Managed Identity authentication and observability (tokens, cost, latency)
 
-## ▶️ Como executar
+## ▶️ Running locally
 
-Pré-requisitos: Python 3.8+ e um recurso Azure OpenAI com deployments de chat e de embeddings.
+Prerequisites: Python 3.8+ and an Azure OpenAI resource with chat and embedding deployments.
 
 ```bash
 git clone https://github.com/dgmodesto/chat-rag-azure-openai.git
@@ -77,7 +78,7 @@ venv\Scripts\activate            # Linux/macOS: source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Crie `.streamlit/secrets.toml`:
+Create `.streamlit/secrets.toml`:
 
 ```toml
 AZURE_OPENAI_API_KEY = "your_api_key"
@@ -96,11 +97,11 @@ AZURE_EMBEDDING_API_VERSION = "2023-05-15"
 streamlit run chat.py
 ```
 
-## 📁 Estrutura
+## 📁 Structure
 
 ```
-├── chat.py            # App Streamlit + chain RAG
-├── data/documents.txt # Base de conhecimento
+├── chat.py            # Streamlit app + RAG chain
+├── data/documents.txt # Knowledge base
 └── requirements.txt
 ```
 
