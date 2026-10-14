@@ -69,14 +69,14 @@ def initialize_vector_store():
 @st.cache_resource
 def generate_prompt_template():
     PROMPT = """
-        Use as informações recuperadas do banco vetorial para responder à pergunta do usuário.
-    Se não encontrar informações relevantes, diga que não sabe.
-    Contexto:
+        Use the information retrieved from the vector store to answer the user's question.
+    If you cannot find relevant information, say you don't know.
+    Context:
     {context}
     ---
-    Histórico da conversa:
+    Conversation history:
     {chat_history}
-    Pergunta do usuário:
+    User question:
     {question}                                                  
     """
     return ChatPromptTemplate.from_template(template=PROMPT)

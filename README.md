@@ -55,7 +55,6 @@ sequenceDiagram
 - The FAISS index is not persisted, so each restart regenerates embeddings (cost and time).
 - No evaluation of retrieval or answer quality.
 - Keys live in `.streamlit/secrets.toml`; in production, use **Azure Key Vault** with Managed Identity.
-- The prompt and sample knowledge base are in Portuguese.
 
 ## 🚀 Roadmap to production
 
