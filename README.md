@@ -1,120 +1,109 @@
-# Conversational AI Chatbot with LangChain, FAISS, and Azure OpenAI
+# Chatbot RAG com LangChain, FAISS e Azure OpenAI
 
-## Overview
+Chatbot conversacional que responde com base em documentos locais (RAG), mantendo o histórico da conversa na sessão do Streamlit.
 
-This project demonstrates a **Conversational AI chatbot** built using **LangChain**, **FAISS**, and **Azure OpenAI**. The chatbot utilizes a retrieval-augmented generation (RAG) architecture, allowing it to provide accurate and context-aware responses. The conversation history is maintained across user interactions using **Streamlit**.
+![Demo](image.png)
 
-![alt text](image.png)
+## 🏗️ Arquitetura
 
-## Features
+### Visão geral
 
-- **Retrieval-Augmented Generation (RAG):** Combines vector search with large language models for precise responses.
-- **FAISS Integration:** Utilizes FAISS for efficient similarity search and embedding storage.
-- **Azure OpenAI Integration:** Leverages the power of OpenAI's GPT models hosted on Azure.
-- **Streamlit Session History:** Maintains conversational context for an improved user experience.
-- **Dynamic Document Ingestion:** Supports adding documents to the knowledge base for enhanced chatbot capabilities.
-
----   
-
-## Prerequisites
-
-1. **Azure OpenAI Service**: Ensure you have an active Azure account with the OpenAI service enabled and a model deployed.
-2. **Python Environment**: Python 3.8 or higher is required.
-3. **API Keys**: Retrieve the API key and endpoint from your Azure OpenAI resource.
-
----
-
-## Installation
-
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/your-repo/chat-rag-azure-openai.git
-   cd chat-rag-azure-openai
-   ```
-
-2. **Set Up a Virtual Environment**:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate # On Windows, use `venv\Scripts\activate`
-   ```
-
-3. **Install Dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Configure Environment Variables**:
-   Create a `.streamlit/` folder and then add `.secrets.toml` file so add the following:
-   ```
-   AZURE_OPENAI_API_KEY='your_api_key'
-
-   AZURE_OPENAI_ENDPOINT='https://your-resource-name.openai.azure.com/'
-   AZURE_DEPLOYMENT_NAME='your_deployment_name'
-   AZURE_MODEL_NAME='gpt-4o-mini'
-   AZURE_API_VERSION='2024-08-01-preview'
-
-   AZURE_DEPLOYMENT_EMBEDDING_ENDPOINT='https://your-resource-name.openai.azure.com/'
-   AZURE_DEPLOYMENT_EMBEDDING_NAME='your_deployment_name'
-   AZURE_EMBEDDING_MODEL_NAME='text-embedding-ada-002'
-   AZURE_EMBEDDING_API_VERSION='2023-05-15'
-   ```
-
----
-
-## Usage
-
-1. **Start the Streamlit Application**:
-   ```bash
-   streamlit run chat.py
-   ```
-
-2. **Interact with the Chatbot**:
-   - Type your questions in the input field.
-   - View responses in real-time.
-   - Add documents to the knowledge base for richer interactions.
-
-3. **Knowledge Base**:
-   - Place your documents in the `data/` folder.
-   - The chatbot uses FAISS to vectorize and store these documents for retrieval.
-
----
-
-## Project Structure
-
-```
-├── chat.py                # Main Streamlit application
-├── requirements.txt       # Required Python packages
-├── data/                  # Folder for storing documents
-├── embeddings/            # Folder for FAISS vector storage
-├── README.md              # Project documentation
-└── .env                   # Environment variables
+```mermaid
+flowchart LR
+    U([Usuário]) --> UI[Streamlit<br/>chat.py]
+    UI --> CH[ConversationalRetrievalChain]
+    CH <--> MEM[ConversationBufferMemory<br/>st.session_state]
+    CH -->|top-k similaridade| VS[(FAISS<br/>em memória)]
+    CH -->|prompt + contexto + histórico| LLM[(Azure OpenAI<br/>chat)]
+    DOC[data/documents.txt] -->|chunks 500 / overlap 50| EMB[(Azure OpenAI<br/>embeddings)]
+    EMB --> VS
 ```
 
----
+### Pipeline
 
-## Key Technologies
+```mermaid
+sequenceDiagram
+    actor U as Usuário
+    participant S as Streamlit
+    participant C as Chain
+    participant V as FAISS
+    participant L as Azure OpenAI
+    Note over S,V: Na inicialização: carrega, divide e vetoriza documentos
+    U->>S: pergunta
+    S->>C: invoke(question)
+    C->>V: buscar trechos semelhantes (k=10)
+    V-->>C: contexto
+    C->>L: prompt (contexto + histórico + pergunta)
+    L-->>C: resposta
+    C-->>S: resposta + documentos de origem
+    S-->>U: exibe resposta
+```
 
-- **LangChain**: Framework for building applications powered by LLMs.
-- **FAISS**: Library for efficient similarity search and clustering.
-- **Azure OpenAI**: Provides GPT models for natural language understanding and generation.
-- **Streamlit**: Simplifies the creation of interactive web applications.
+## 🧭 Decisões de arquitetura
 
----
+| Decisão | Motivo | Trade-off |
+|---|---|---|
+| **RAG** em vez de fine-tuning | Conhecimento atualizável sem retreinar e com menor custo | Qualidade depende do *chunking* e da recuperação |
+| **FAISS** em memória | Simples, sem serviço externo | Índice é recriado a cada inicialização; não escala nem persiste |
+| Chunks de 500 caracteres, overlap 50 | Bom ponto de partida para texto corrido | Precisa de ajuste conforme o tipo de documento |
+| **Azure OpenAI** | Governança, rede privada e conformidade corporativa | Exige provisionar deployments (chat e embeddings) |
+| Memória na `session_state` | Contexto por usuário sem backend | Perdida ao recarregar a sessão |
 
-## Contributing
+## ⚠️ Limitações
 
-We welcome contributions! Feel free to open issues or submit pull requests to enhance this project.
+- Apenas um arquivo de texto (`data/documents.txt`) é ingerido; não há upload dinâmico de documentos.
+- O índice FAISS não é persistido, então cada reinício gera novos embeddings (custo e tempo).
+- Não há avaliação de qualidade da recuperação nem das respostas.
+- Chaves em `.streamlit/secrets.toml`; em produção, use **Azure Key Vault** com Managed Identity.
 
----
+## 🚀 Roadmap para produção
 
-## License
+- [ ] Persistir o índice (FAISS em disco) ou migrar para **Azure AI Search**
+- [ ] Suporte a vários formatos (PDF, Markdown) e ingestão incremental
+- [ ] Busca híbrida (vetorial + palavra-chave) e *reranking*
+- [ ] Avaliação do RAG (relevância do contexto, fidelidade, correção) no CI
+- [ ] Citação das fontes na interface (os documentos de origem já são retornados)
+- [ ] Autenticação via Entra ID / Managed Identity e observabilidade (tokens, custo, latência)
 
-This project is licensed under the [MIT License](LICENSE).
+## ▶️ Como executar
 
----
+Pré-requisitos: Python 3.8+ e um recurso Azure OpenAI com deployments de chat e de embeddings.
 
-## Author
+```bash
+git clone https://github.com/dgmodesto/chat-rag-azure-openai.git
+cd chat-rag-azure-openai
+python -m venv venv
+venv\Scripts\activate            # Linux/macOS: source venv/bin/activate
+pip install -r requirements.txt
+```
 
-Developed by [Douglas Modesto](https://github.com/dgmodesto).  
+Crie `.streamlit/secrets.toml`:
 
-For questions or feedback, reach out via email or GitHub.
+```toml
+AZURE_OPENAI_API_KEY = "your_api_key"
+AZURE_OPENAI_ENDPOINT = "https://your-resource-name.openai.azure.com/"
+AZURE_DEPLOYMENT_NAME = "your_deployment_name"
+AZURE_MODEL_NAME = "gpt-4o-mini"
+AZURE_API_VERSION = "2024-08-01-preview"
+
+AZURE_DEPLOYMENT_EMBEDDING_ENDPOINT = "https://your-resource-name.openai.azure.com/"
+AZURE_DEPLOYMENT_EMBEDDING_NAME = "your_embedding_deployment"
+AZURE_EMBEDDING_MODEL_NAME = "text-embedding-ada-002"
+AZURE_EMBEDDING_API_VERSION = "2023-05-15"
+```
+
+```bash
+streamlit run chat.py
+```
+
+## 📁 Estrutura
+
+```
+├── chat.py            # App Streamlit + chain RAG
+├── data/documents.txt # Base de conhecimento
+└── requirements.txt
+```
+
+## 🛠️ Stack
+
+Python · LangChain · FAISS · Azure OpenAI · Streamlit
